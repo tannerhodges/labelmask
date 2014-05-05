@@ -58,18 +58,15 @@
 	<header role="banner" class="header">
 		<h1>Labelmask</h1>
 	</header>
-	<form>
-		<p>Labelmask is a way to create accessible input hinting without using input masks.</a></p>
+	<form action="">
+		<p>Labelmask is a way to create accessible input hinting without using input masks.</p>
 		<div class="field">
 			<label for="input-cc">Credit Card</label>
-			<input type="text" pattern="[0-9]*" id="input-cc" data-labelmask placeholder="xxxx xxxx xxxx xxxx" data-format="credit-card-number" />
-			<code>input[type=text]</code> (Credit Card) with <code>pattern="[0-9]*"</code>
+			<input type="text" pattern="[0-9]*" data-labelmask data-format="credit-card-number" id="input-cc" />
 		</div>
 
 		<label for="input-tel">Phone</label>
-			<input type="tel" id="input-tel" data-labelmask placeholder="___-___-____" data-format="us-telephone-number" />
-			<code>input[type=tel]</code> (US Phone Number) with <code>data-grouplength="3,3,"</code>
-		</label>
+    <input type="tel" data-labelmask data-format="us-telephone-number" id="input-tel" />
 		
 	</form>
 </body>
