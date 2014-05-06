@@ -16,17 +16,22 @@
 
 		type = element.getAttribute("data-format").replace(/-/g, '_').toUpperCase();
 
-		if ( !( type in Labelmask.Types ) ) return;
+		if ( !( type in Labelmask.Types ) )
+      throw new Error("Labelmask requires a format");
 
 		this.element = element;
 		this.elID = this.element.id;
 
-		this.inputSpacer = Labelmask.Types[ type ].spacer;
+		this.inputSeparator = Labelmask.Types[ type ].separator;
 		this.inputFormat = Labelmask.Types[ type ].format;
-
-		this.inputGroupLength = Labelmask.Types[ type ].groupLength;
+    this.maxLength   = Labelmask.Types[ type ].maxLength;
+		this.inputGroupLength = Labelmask.Types[ type ].groupLength.toString();
+    this.adjustment = this.inputGroupLength.length === 1
+      ? this.maxLength/+this.inputGroupLength
+      : this.inputGroupLength.split(',').length - 1;
 		groupRegMatch = this._buildRegexArr( this.inputGroupLength );
 
+    this.placeholder = Labelmask.preparePlaceholder(this);
 		this.elLabel = $("[for="+this.elID+"]");
 
 		this.groupRegNonUniform = groupRegMatch.length > 1;
@@ -62,7 +67,7 @@
 				}
 			}
 
-			val = ( match || [ val ] ).join( this.inputSpacer );
+			val = ( match || [ val ] ).join( this.inputSeparator );
 		} else {
 			val = val.replace( this.groupReg, "$1 " );
 
@@ -75,27 +80,31 @@
 	};
 
 	Labelmask.prototype.update = function() {
-		var maxlength = this.element.getAttribute( "maxlength" ),
-			val = this.format( this.element.value );
+		var val = this.format( this.element.value );
 
-		if( maxlength ) {
-			val = val.substr( 0, maxlength );
+		if( this.maxLength ) {
+			val = val.substr( 0, this.maxLength + this.adjustment );
 		}
 
 		this.element.value = val;
 	};
 
 	Labelmask.prototype.unformat = function( value ) {
-		return value.replace( RegExp(this.inputSpacer, 'g'), '' );
+		return value.replace( new RegExp(this.inputSeparator, 'g'), '' );
 	};
 
 	Labelmask.prototype.reset = function() {
 		this.element.value = this.unformat( this.element.value );
 	};
 
+  Labelmask.prototype.addPlaceholder = function() {
+      if ( this.element.value.length === 0 )
+          this.element.placeholder = this.placeholder;
+    };
+
 	Labelmask.prototype.addLabelMask = function() {
 		if(this.elLabel.find('.labelmask').length === 0) {
-			this.elLabel.append('<span class="labelmask"></span>');
+			this.elLabel.append( $('<span>', { class: 'labelmask' }) );
 		}
 	};
 
@@ -111,31 +120,46 @@
 
 	Labelmask.prototype.mask = function() {
 		var charCount = this.element.value.length,
-			remainingFormat = this.inputFormat.substr( charCount ),
+			remainingFormat = this.placeholder.replace(new RegExp(this.inputSeparator, 'g'), '').substr( charCount ),
 			val = this.element.value + remainingFormat;
-		console.log(val);
+
 		return val;
 	};
 
+  Labelmask.preparePlaceholder = function(lm) {
+    var groups = lm.inputGroupLength.split(',');
+    if ( groups.length === 1 ) {
+      var
+      gL = lm.inputGroupLength,
+      placeholder = [];
+      while( gL-- ) placeholder.push( new Array( +groups[0] + 1 ).join( lm.inputFormat ) );
+      return placeholder.join( lm.inputSeparator );
+    }
+    return groups.map( function(a) {return +a > 0 ? +a : groups.reduce(function(a,b) {return a-b;}, lm.maxLength);} ).map( function(a) {return new Array(++a).join(lm.inputFormat); } ).join(lm.inputSeparator);
+  };
+
 	Labelmask.Types = {
 		CREDIT_CARD_NUMBER: {
-			spacer: ' ',
-			format: 'xxxxxxxxxxxxxxxx',
-			groupLength: '4'
+			separator: ' ',
+			format: 'x',
+			groupLength: 4,
+      maxLength: 16
 		},
 
 		US_TELEPHONE_NUMBER: {
-			spacer: '-',
-			format: '__________',
-			groupLength: '3,3,'
+			separator: '-',
+			format: '_',
+			groupLength: '3,3,',
+      maxLength: 10
 		}
 	};
 
 	Labelmask.addInputType = function(name, attrs) {
 		name &&
-		attrs.spacer &&
+		attrs.separator &&
 		attrs.format &&
 		attrs.groupLength &&
+    attrs.total &&
 		(Labelmask.Types[name] = attrs);
 	};
 
@@ -154,10 +178,11 @@
 
 	$.fn[ componentName ] = function(){
 		return this.each( function(){
-
 			var polite = new Labelmask( this );
+      polite.addPlaceholder();
 
 			$( this ).bind( "blur", function() {
+          polite.reset();
 					polite.update();
 					polite.removeLabelMask();
 				})
@@ -167,9 +192,7 @@
 					polite.updateLabelMask($(this).val());
 				})
 				.bind( "keyup", function() {
-					polite.reset();
 					polite.updateLabelMask($(this).val());
-
 				})
 				.data( componentName, polite );
 
