@@ -135,7 +135,13 @@
       while( gL-- ) placeholder.push( new Array( +groups[0] + 1 ).join( lm.inputFormat ) );
       return placeholder.join( lm.inputSeparator );
     }
-    return groups.map( function(a) {return +a > 0 ? +a : groups.reduce(function(a,b) {return a-b;}, lm.maxLength);} ).map( function(a) {return new Array(++a).join(lm.inputFormat); } ).join(lm.inputSeparator);
+    return groups.map( function(a) {
+      return +a > 0
+        ? +a
+        : groups.
+          reduce(function(a,b) {return a-b;}, lm.maxLength);}).
+          map( function(a) {return new Array(++a).join(lm.inputFormat); } ).
+          join(lm.inputSeparator);
   };
 
 	Labelmask.Types = {
